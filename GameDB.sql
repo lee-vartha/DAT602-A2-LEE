@@ -66,7 +66,7 @@ CREATE TABLE Player(
 		flower INT DEFAULT 10,
 		rock INT DEFAULT -10,
 		BoardID INT NOT NULL,
-		TileType INT NOT NULL DEFAULT 0, 
+		TileType VARCHAR(255), 
 		FOREIGN KEY (BoardID) REFERENCES Board(BoardID),
         FOREIGN KEY (MapID) REFERENCES Map(MapID)
 	);
@@ -125,6 +125,7 @@ CREATE TABLE Player(
 	CREATE TABLE Item_Inventory (
 		ItemID INT, -- primary key, foreign key
         PlayerID INT, -- primary key, foreign key
+        Quantity INT,
         PRIMARY KEY (ItemID, PlayerID), 
         FOREIGN KEY (ItemID) REFERENCES Item(ItemID),
         FOREIGN KEY (PlayerID) REFERENCES Player(PlayerID)
@@ -324,7 +325,6 @@ BEGIN
         -- Insert into PlayerGame only if this PlayerID-GameID combination doesn't already exist
         IF NOT EXISTS (SELECT * FROM PlayerGame WHERE PlayerID = localPlayerID AND GameID = newGameID) THEN
             INSERT INTO PlayerGame (PlayerID, GameID) VALUES (localPlayerID, newGameID);
-            SELECT 'Game is created' AS Message;
         ELSE
             SELECT 'This player is already associated with this game.' AS Message;
         END IF;
@@ -414,7 +414,37 @@ DELIMITER ;
 
 
 -- CODE FOR ACQUIRING INVENTORY
+DROP PROCEDURE IF EXISTS CollectItem;
+DELIMITER $$
+CREATE PROCEDURE CollectItem(IN pPlayerID INT, IN pItemID INT, IN pTileID INT)
+BEGIN
+	DECLARE itemCount INT;
+    
+    -- getting the count for how many flowers have been picked up
+    SELECT COUNT(*)
+    INTO itemCount
+    FROM Item_Inventory
+    WHERE PlayerID = pPlayerID AND ItemID = pItemID;
+    
+    IF itemCount > 0 THEN
+    UPDATE Item_Inventory
+    SET Quantity = Quantity + 1 -- increasing the count of flowers for the inventory box
+    WHERE PlayerID = pPlayerID AND ItemID = pItemID;
+    
+		SELECT 'Collecting another flower' AS Message;
+	ELSE
+		INSERT INTO Item_Inventory(PlayerID, ItemID, Quantity)
+        VALUES (pPlayerID, pItemID, 1);
+                SELECT 'Flower collected' AS Message;
 
+	END IF;
+    
+        UPDATE Tile
+        SET TileType = 'Empty'
+        WHERE TileID = pTileID;
+        
+END $$
+DELIMITER ;
 
 
 
