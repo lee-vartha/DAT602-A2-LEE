@@ -4,6 +4,10 @@ USE gamedb; -- this is the database
 
 SET SQL_SAFE_UPDATES = 0;
 
+DROP USER IF EXISTS 'admin'@'localhost';
+CREATE USER 'admin'@'localhost' IDENTIFIED BY 'pass';
+GRANT ALL ON gamedb.* TO 'admin'@'localhost';
+
 DELIMITER $$
 CREATE PROCEDURE TableSetup()
 BEGIN
@@ -107,6 +111,7 @@ CREATE TABLE Player(
 	CREATE TABLE Item_Tile (
 		ItemID INT, -- primary key, foreign key
 		TileID INT, -- primary key, foreign key
+		ButterflyID INT,
 		PRIMARY KEY (ItemID, TileID),
 		FOREIGN KEY (ItemID) REFERENCES Item(ItemID), -- foreign key referencing
 		FOREIGN KEY (TileID) REFERENCES Tile(TileID) -- foreign key referencing
@@ -325,6 +330,7 @@ BEGIN
         -- Insert into PlayerGame only if this PlayerID-GameID combination doesn't already exist
         IF NOT EXISTS (SELECT * FROM PlayerGame WHERE PlayerID = localPlayerID AND GameID = newGameID) THEN
             INSERT INTO PlayerGame (PlayerID, GameID) VALUES (localPlayerID, newGameID);
+            SELECT 'Game is created' AS Message;
         ELSE
             SELECT 'This player is already associated with this game.' AS Message;
         END IF;
@@ -387,7 +393,13 @@ DELIMITER ;
 
 
 -- CODE TO PLACE AN ITEM ON A TILE
+DROP PROCEDURE IF EXISTS PlaceItem;
+CREATE PROCEDURE PlaceItem(IN pItemID INT, IN pTileID INT)
+BEGIN
+	
 
+END $$
+DELIMITER ;
 
 
 
@@ -431,11 +443,10 @@ BEGIN
     SET Quantity = Quantity + 1 -- increasing the count of flowers for the inventory box
     WHERE PlayerID = pPlayerID AND ItemID = pItemID;
     
-		SELECT 'Collecting another flower' AS Message;
+		SELECT 'Collected!' AS Message;
 	ELSE
 		INSERT INTO Item_Inventory(PlayerID, ItemID, Quantity)
         VALUES (pPlayerID, pItemID, 1);
-                SELECT 'Flower collected' AS Message;
 
 	END IF;
     
@@ -448,17 +459,39 @@ DELIMITER ;
 
 
 
+-- SEEING WHETHER AN NPC IS MOVING OR NOT (FOR MOVEMENT)
+DROP TABLE IF EXISTS NPCSession;
+CREATE TABLE NPCMovement (
+	NPCID INT PRIMARY KEY,
+	IsMoving BOOLEAN DEFAULT FALSE	
+);
 
+-- CODE TO MOVE THE NPC ON THE BOARD (NOT REALLY WORKING)
+DROP PROCEDURE IF EXISTS MoveNPC;
+DELIMITER $$
+CREATE PROCEDURE MoveNPC(IN ButterflyID INT)
+BEGIN
+	DECLARE newTileID INT;
+IF (SELECT IsMoving FROM NPCSession WHERE NPCID = ButterflyID) = TRUE THEN
+	SELECT 'NPC is already moving' AS Message;
+ELSE
+	-- show that the npc is moving (setting the boolean to true
+	UPDATE NPCSession SET IsMoving = TRUE WHERE NPCID = ButterflyID;
 
+SELECT TileID INTO newTileID
+	FROM Tile
+	WHERE TileID NOT IN (
+		SELECT TileID FROM Flower
+		UNION
+		SELECT TileID FROM PlayerGame
+	)
+	LIMIT 1;
 
-
--- CODE FOR MOVING AN ITEM (NPC EFFECT)
-
-
-
-
-
-
+	UPDATE NPCs SET TileID = newTileID WHERE NPCID = ButterflyID;
+	UPDATE NPCSession SET IsMoving = FALSE WHERE NPCID = ButterflyID:
+END IF;
+END $$
+DELIMITER ;
 
 
 -- CODE TO DELETE/KILL AN EXISTING GAME (FOR ADMIN) - 4 MARKS
