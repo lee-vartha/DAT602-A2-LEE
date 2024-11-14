@@ -488,7 +488,7 @@ SELECT TileID INTO newTileID
 	LIMIT 1;
 
 	UPDATE NPCs SET TileID = newTileID WHERE NPCID = ButterflyID;
-	UPDATE NPCSession SET IsMoving = FALSE WHERE NPCID = ButterflyID:
+	UPDATE NPCSession SET IsMoving = FALSE WHERE NPCID = ButterflyID;
 END IF;
 END $$
 DELIMITER ;
